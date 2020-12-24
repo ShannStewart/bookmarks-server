@@ -5,6 +5,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const { NODE_ENV } = require('./config')
 const { v4: uuid } = require('uuid');
+const markRouter = require('./markRouter')
 
 const app = express()
 
@@ -26,6 +27,9 @@ app.use(function validateBearerToken(req, res, next) {
   // move to the next middleware
   next()
 })
+
+app.use(markRouter);
+
 
 app.get('/', (req, res) => {
     res.send('Hello, world!')

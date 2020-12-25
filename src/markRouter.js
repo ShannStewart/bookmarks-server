@@ -1,6 +1,8 @@
 const express = require('express')
 const { v4: uuid } = require('uuid')
 const logger = require('./logger')
+const { isWebUri } =require ('valid-url')
+
 const bookmarks = require('./store')
 
 const markRouter = express.Router()
@@ -19,31 +21,37 @@ markRouter
             logger.error(`Title is required`);
             return res
               .status(400)
-              .send('Invalid data');  
+              .send('Title is required');  
           }
           if (!url) {
             logger.error(`URL is required`);
             return res
               .status(400)
-              .send('Invalid data');  
+              .send('URL is required');  
+          }
+          if(!isWebUri(url)){
+            logger.error(`Not a valid URL`);
+            return res
+              .status(400)
+              .send('URL is nor valid');  
           }
           if (!rating) {
             logger.error(`Rating is required`);
             return res
               .status(400)
-              .send('Invalid data');  
+              .send('Rating is required');  
           }
           if (!desc) {
             logger.error(`Description is required`);
             return res
               .status(400)
-              .send('Invalid data');  
+              .send('Description is required');  
           }
           if (rating < 0){
               logger.error(`Rating must be more then zero`);
               return res
               .status(400)
-              .send('Invalid data');
+              .send('Rating must be more then zero');
           }
 
           const id = uuid();

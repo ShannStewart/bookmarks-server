@@ -1,117 +1,89 @@
 const express = require('express')
 const { v4: uuid } = require('uuid')
 const logger = require('./logger')
-const { isWebUri } =require ('valid-url')
+const { isWebUri } = require ('valid-url')
 
-const bookmarks = require('./store')
+//const bookmarks = require('./store')
+const markServices = require('./bookmarksService');
 
 const markRouter = express.Router()
 const bodyParser = express.json()
 
+const cleanMark = bookmark => ({
+  id: bookmark.id,
+  url: xxs(bookmark.url),
+  title: xxs(bookmark.title),
+  description: bookmark.description,
+  rating: bookmark.rating
+
+})
+
+//markServices.serviceCheck();
+
 markRouter
-    .route('/bookmarks')
-    .get((req,res) =>{
+    .route('/')
+    .get((req, red, next) =>{
 
       const knexInstance = req.app.get('db')
-console.log("Does this work?: " + knexInstance);
-
-        res
-    .json(bookmarks);
+      markServices.getAllBookmarks(knexInstance)
+      .then(bookmark => {
+        res.json(bookmark.map(cleanMark))
+      })
+      .catch(next)
     })
-    .post(bodyParser, (req,res) => {
+    .post(bodyParser, (req, res, next) => {
         const { title, url, rating, desc } = req.body;
+        const newBookmark =  { title, url, rating, desc };
 
-        if (!title) {
-            logger.error(`Title is required`);
-            return res
-              .status(400)
-              .send('Title is required');  
-          }
-          if (!url) {
-            logger.error(`URL is required`);
-            return res
-              .status(400)
-              .send('URL is required');  
-          }
-          if(!isWebUri(url)){
-            logger.error(`Not a valid URL`);
-            return res
-              .status(400)
-              .send('URL is nor valid');  
-          }
-          if (!rating) {
-            logger.error(`Rating is required`);
-            return res
-              .status(400)
-              .send('Rating is required');  
-          }
-          if (!desc) {
-            logger.error(`Description is required`);
-            return res
-              .status(400)
-              .send('Description is required');  
-          }
-          if (rating < 0){
-              logger.error(`Rating must be more then zero`);
-              return res
-              .status(400)
-              .send('Rating must be more then zero');
-          }
 
-          const id = uuid();
+        for (const [key, value] of Object.entries(newBookmark))
+      if (value == null)
+        return res.status(400).json({
+          error: { message: `Missing '${key}' in request body` }
+        })
 
-          const bookmark = {
-              id,
-              title,
-              url,
-              rating,
-              desc,
-          };
-
-          bookmarks.push(bookmark);
-
-          logger.info(`Bookmark with id ${id} created`);
-
-            res
-            .status(201)
-            .location(`http://localhost:8000/bookmarks/${id}`)
-            .json(bookmark);
+    markService.insertBookmark(
+      req.app.get('db'),
+      newBookmark
+    )
+    .then(bookmark => {
+      res
+        .status(201)
+        .location(`/bookmarks/${bookmark.id}`)
+        .json(serializeArticle(bookmark))
     })
+    .catch(next)
+})
 
 markRouter
-    .route('/bookmarks/:id')
-    .get((req,res) =>{
-        const { id } = req.params;
-        const bookmark = bookmarks.find(b => b.id == id);
-
-        if (!bookmark) {
-            logger.error(`Card with id ${id} not found.`);
-            return res
-              .status(404)
-              .send('Card Not Found');
-          }
-      
-          res.json(bookmark)
+    .route('/:bookmark_id')
+    .get((req, res, next) =>{
+        markServices.getById(
+          req.app.get('db'),
+          req.params.bookmark_id
+        )
+      .then(bookmark => {
+        if (!bookmark){
+          return res.status(404).json({
+            error: { message: `Article doesnt exist`}
+          })
+        }
+        res.bookmark = bookmark;
+        next()
+      })
+      .catch(next)
     })
-    .delete((req, res) =>{
-        const { id } = req.params;
+    .delete((req, res, next) =>{
+      markServices.deleteItem(
+        req.app.get('db'),
+        req.params.bookmark_id
+      )
 
-        const bookIndex = bookmarks.findIndex(c => c.id == id);
+      .then(numRowsAffected => {
+        res.status(204).end()
+      })
+      .catch(next);
 
-        if (bookIndex === -1) {
-            logger.error(`Bookmark with id ${id} not found.`);
-            return res
-              .status(404)
-              .send('Not found');
-          }
-      
-          bookmarks.splice(bookIndex, 1);
-      
-          logger.info(`Bookmark with id ${id} deleted.`);
-      
-          res
-            .status(204)
-            .end();
     })
 
 module.exports = markRouter

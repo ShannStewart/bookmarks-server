@@ -1,4 +1,4 @@
-require('dotenv').config()
+  require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
@@ -6,8 +6,8 @@ const helmet = require('helmet')
 const { NODE_ENV } = require('./config')
 const { v4: uuid } = require('uuid');
 
-//const markRouter = require('./markRouter');
-const markServices = require('./bookmarksService');
+const markRouter = require('./markRouter');
+
 
 const app = express()
 
@@ -30,29 +30,7 @@ app.use(function validateBearerToken(req, res, next) {
   next()
 })
 
-//app.use(markRouter);
-
-markServices.serviceCheck();
-
-app.get('/bookmarks', (req, res, next) => {
-   
-  const knexInstance = req.app.get('db')
-  markServices.getAllBookmarks(knexInstance)
-       .then(articles => {
-         res.json(articles)
-       })
-     .catch(next)
- })
-
- app.get('/bookmarks:id', (req, res, next) => {
-   
-  const knexInstance = req.app.get('db')
-  markServices.getAllBookmarks(knexInstance)
-       .then(articles => {
-         res.json(articles)
-       })
-     .catch(next)
- })
+app.use('/bookmarks', markRouter)
 
 app.get('/', (req, res) => {
     res.send('Hello, world!')

@@ -11,6 +11,10 @@ const bodyParser = express.json()
 markRouter
     .route('/bookmarks')
     .get((req,res) =>{
+
+      const knexInstance = req.app.get('db')
+console.log("Does this work?: " + knexInstance);
+
         res
     .json(bookmarks);
     })
